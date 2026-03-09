@@ -317,8 +317,10 @@ export default function App() {
       });
       const json = await res.json();
       const text = json.content?.map(b => b.type === "text" ? b.text : "").filter(Boolean).join("\n");
-      const clean = text.replace(/```json|```/g, "").trim();
-      setData(JSON.parse(clean));
+      if (!text) throw new Error("Empty response from API");
+      const match = text.match(/\{[\s\S]*\}/);
+if (!match) throw new Error("No JSON found in: " + text.slice(0, 200));
+setData(JSON.parse(match[0]));
     } catch (e) {
       setError("Error: " + (e?.message || JSON.stringify(e)));
     } finally {
