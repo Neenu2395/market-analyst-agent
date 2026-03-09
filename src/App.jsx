@@ -316,7 +316,7 @@ export default function App() {
       });
       const json = await res.json();
       const text = json.content?.map(b => b.type === "text" ? b.text : "").filter(Boolean).join("\n");
-      if (!text) throw new Error("Empty response from API");
+      if (!text) throw new Error("RAW: " + JSON.stringify(json).slice(0, 500));
       const match = text.match(/\{[\s\S]*\}/);
 if (!match) throw new Error("No JSON found in: " + text.slice(0, 200));
 setData(JSON.parse(match[0]));
