@@ -320,7 +320,7 @@ export default function App() {
       const clean = text.replace(/```json|```/g, "").trim();
       setData(JSON.parse(clean));
     } catch (e) {
-      setError("Analysis could not be completed. Please refine your input and try again.");
+      setError("Error: " + (e?.message || JSON.stringify(e)));
     } finally {
       setLoading(false);
     }
