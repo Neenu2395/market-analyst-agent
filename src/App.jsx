@@ -356,7 +356,25 @@ const FollowUpChat = ({ reportData }) => {
     setThinking(true);
     try {
       const contextMsg = `Here is the market analysis report data: ${JSON.stringify(reportData)}\n\nUser question: ${userMsg}`;
-      const text = await callClaude([{ role: "user", content: contextMsg }], FOLLOWUP_SYSTEM, false);
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          system: FOLLOWUP_SYSTEM,
+          messages: [{ role: "user", content: contextMsg }],
+        }),
+      });
+      const json = await res.json();
+      if (json.type === "error") throw new Error(json.error?.message);
+      const text = (json.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+      if (!text) throw new Error("Empty response");
       setMessages(prev => [...prev, { role: "assistant", text }]);
     } catch (e) {
       setMessages(prev => [...prev, { role: "assistant", text: "Sorry, couldn't process that. Try again." }]);
@@ -462,8 +480,8 @@ export default function App() {
         true
       );
       if (!text) throw new Error("No response from API");
-      const stripped = text.replace(/<cite[^>]*>|<\/cite>/g, "");
-      const match = text.match(/\{[\s\S]*\}/);
+      const clean = text.replace(/<cite[^>]*>/g, "").replace(/<\/cite>/g, "");
+      const match = clean.match(/\{[\s\S]*\}/);
       if (!match) throw new Error("Could not parse report data");
       setData(JSON.parse(match[0]));
     } catch (e) {
@@ -474,12 +492,13 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f0e8", fontFamily: "'Source Serif 4', serif", color: "#3a2e22" }}>
+    <div style={{ minHeight: "100vh", width: "100%", background: "#f5f0e8", fontFamily: "'Source Serif 4', serif", color: "#3a2e22" }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet" />
+      <style>{`html, body, #root { margin: 0; padding: 0; width: 100%; } *, *::before, *::after { box-sizing: border-box; }`}</style>
 
       {/* Masthead */}
-      <div style={{ background: "#2a1e10", padding: "0 40px", borderBottom: "4px solid #8a6c40" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 0 13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+      <div style={{ background: "#2a1e10", width: "100%", padding: "0 5%", borderBottom: "4px solid #8a6c40" }}>
+        <div style={{ width: "100%", maxWidth: 1400, margin: "0 auto", padding: "16px 0 13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 21, fontWeight: 900, color: "#f5f0e8", letterSpacing: "-0.02em", lineHeight: 1 }}>Market Intelligence</div>
             <div style={{ fontSize: 9, letterSpacing: "0.2em", color: "#b0946a", marginTop: 3, textTransform: "uppercase" }}>Competitive Benchmarking & Analysis Agent · Web Search Enabled</div>
@@ -491,7 +510,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 40px" }}>
+      <div style={{ width: "100%", maxWidth: 1400, margin: "0 auto", padding: "28px 5%" }}>
 
         {/* Input Card */}
         <div style={{ background: "#fff", border: "1px solid #d4c9b8", borderRadius: 4, padding: "22px 26px", marginBottom: 28, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
