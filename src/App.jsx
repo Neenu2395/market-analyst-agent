@@ -343,7 +343,7 @@ const ReportSection = ({ number, title, children }) => (
 
 // ─── Follow-up Chat ───────────────────────────────────────────────────────────
 
-const FollowUpChat = ({ reportData }) => {
+const FollowUpChat = ({ reportData, apiKey }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -360,7 +360,7 @@ const FollowUpChat = ({ reportData }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": API_KEY,
+          "x-api-key": apiKey,
           "anthropic-version": "2023-06-01",
           "anthropic-dangerous-direct-browser-access": "true",
         },
@@ -377,7 +377,7 @@ const FollowUpChat = ({ reportData }) => {
       if (!text) throw new Error("Empty response");
       setMessages(prev => [...prev, { role: "assistant", text }]);
     } catch (e) {
-      setMessages(prev => [...prev, { role: "assistant", text: "Sorry, couldn't process that. Try again." }]);
+      setMessages(prev => [...prev, { role: "assistant", text: "Error: " + (e?.message || "Unknown error") }]);
     } finally {
       setThinking(false);
     }
@@ -695,7 +695,7 @@ export default function App() {
             </div>
 
             {/* Follow-up Chat */}
-            <FollowUpChat reportData={data} />
+            <FollowUpChat reportData={data} apiKey={import.meta.env.VITE_ANTHROPIC_API_KEY} />
           </div>
         )}
 
