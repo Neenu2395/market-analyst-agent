@@ -479,7 +479,7 @@ export default function App() {
 
       {/* Masthead */}
       <div style={{ background: "#2a1e10", padding: "0 40px", borderBottom: "4px solid #8a6c40" }}>
-        <div style={{ maxWidth: 840, margin: "0 auto", padding: "16px 0 13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 0 13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 21, fontWeight: 900, color: "#f5f0e8", letterSpacing: "-0.02em", lineHeight: 1 }}>Market Intelligence</div>
             <div style={{ fontSize: 9, letterSpacing: "0.2em", color: "#b0946a", marginTop: 3, textTransform: "uppercase" }}>Competitive Benchmarking & Analysis Agent · Web Search Enabled</div>
@@ -491,7 +491,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 840, margin: "0 auto", padding: "28px 40px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "28px 40px" }}>
 
         {/* Input Card */}
         <div style={{ background: "#fff", border: "1px solid #d4c9b8", borderRadius: 4, padding: "22px 26px", marginBottom: 28, boxShadow: "0 2px 10px rgba(0,0,0,0.05)" }}>
