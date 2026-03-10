@@ -601,7 +601,7 @@ export default function App() {
 
         {/* ─── REPORT ─────────────────────────── */}
         {data && (
-          <div style={{ animation: "fadeUp 0.5s ease both" }}>
+          <div id="pdf-report" style={{ animation: "fadeUp 0.5s ease both" }}>
             <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:none } }`}</style>
 
             {/* Report header */}
@@ -621,13 +621,31 @@ export default function App() {
             {/* Export bar */}
             <div style={{ background: "#fdfaf6", border: "1px solid #d4c9b8", borderTop: "none", padding: "10px 30px", display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => {
+                // Inject comprehensive print styles
                 const style = document.createElement("style");
-                style.innerHTML = `@media print { body { -webkit-print-color-adjust: exact; } button { display: none !important; } .no-print { display: none !important; } }`;
+                style.id = "pdf-print-style";
+                style.innerHTML = `
+                  @media print {
+                    @page { margin: 15mm; size: A4; }
+                    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    body * { visibility: hidden; }
+                    #pdf-report, #pdf-report * { visibility: visible !important; }
+                    #pdf-report { position: absolute; left: 0; top: 0; width: 100%; }
+                    button, .no-print { display: none !important; }
+                    table { page-break-inside: auto; }
+                    tr { page-break-inside: avoid; }
+                    h1, h2 { page-break-after: avoid; }
+                    .report-section { page-break-inside: avoid; }
+                  }
+                `;
                 document.head.appendChild(style);
                 window.print();
-                setTimeout(() => document.head.removeChild(style), 1000);
+                setTimeout(() => {
+                  const el = document.getElementById("pdf-print-style");
+                  if (el) el.remove();
+                }, 2000);
               }} style={{ background: "#2a1e10", color: "#f5f0e8", border: "none", borderRadius: 3, padding: "7px 16px", fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 11, cursor: "pointer", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}>
-                <span>⬇</span> Export PDF
+                <span style={{ fontSize: 13 }}>⬇</span> Export PDF
               </button>
             </div>
 
