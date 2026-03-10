@@ -355,7 +355,21 @@ const FollowUpChat = ({ reportData, apiKey }) => {
     setMessages(prev => [...prev, { role: "user", text: userMsg }]);
     setThinking(true);
     try {
-      const contextMsg = `Here is the market analysis report data: ${JSON.stringify(reportData)}\n\nUser question: ${userMsg}`;
+      // Send only a compact summary instead of full JSON to stay within token limits
+      const compact = {
+        product: reportData?.meta?.productName,
+        type: reportData?.meta?.productType,
+        verdict: reportData?.executive?.verdictLabel,
+        score: reportData?.executive?.opportunityScore,
+        summary: reportData?.executive?.summary,
+        competitors: (reportData?.competitors || []).map(c => ({ name: c.name, type: c.type, positioning: c.positioning, strengths: c.strengths, weaknesses: c.weaknesses })),
+        swot: reportData?.swot,
+        positioning: reportData?.positioning?.recommendation,
+        whitespace: reportData?.positioning?.whitespace,
+        gtm: reportData?.gtm,
+        market: { tam: reportData?.market?.tam, cagr: reportData?.market?.cagr, maturity: reportData?.market?.maturity, trends: reportData?.market?.trends },
+      };
+      const contextMsg = `Market analysis report summary: ${JSON.stringify(compact)}\n\nUser question: ${userMsg}`;
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
