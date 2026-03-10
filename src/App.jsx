@@ -103,6 +103,15 @@ After researching, respond ONLY with a valid JSON object — no markdown, no cod
   }
 }
 
+Also add a "pmDecision" section to your JSON:
+  "pmDecision": {
+    "buildBuyPartner": "Build | Buy | Partner — and one sentence explaining why",
+    "firstMove": "The single most important first action this PM should take in the next 30 days",
+    "biggestRisk": "The one thing most likely to kill this product in year 1",
+    "watchClosely": "The one competitor to monitor most carefully and why",
+    "contrarian": "One contrarian insight about this market that most analysts miss"
+  }
+
 Be specific with real company names, real market data, and concrete insights. Return ONLY the JSON.`;
 
 const FOLLOWUP_SYSTEM = `You are a senior market intelligence analyst. The user has a report in front of them and wants to ask follow-up questions about it. Answer concisely and insightfully in 2-4 sentences. Use the report context provided.`;
@@ -217,44 +226,118 @@ const ScoreBar = ({ score }) => {
   );
 };
 
-const PositioningMap = ({ data }) => {
+const PositioningMap = ({ data, competitors }) => {
   const { axes, players, whitespace } = data || {};
-  const W = 340, H = 260, pad = 36;
+  const [hovered, setHovered] = useState(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const W = 480, H = 340, pad = 44;
+
+  const getCompetitorInfo = (name) => {
+    if (!competitors) return null;
+    return competitors.find(c => c.name?.toLowerCase().includes(name?.toLowerCase()) || name?.toLowerCase().includes(c.name?.toLowerCase()));
+  };
+
   return (
-    <div>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxWidth: W, display: "block" }}>
-        <rect width={W} height={H} fill="#faf7f2" />
-        <rect x={pad} y={H / 2} width={W / 2 - pad / 2} height={H / 2 - pad / 2} fill="#f0ebe3" opacity={0.6} />
-        <line x1={W / 2} y1={pad - 6} x2={W / 2} y2={H - pad + 6} stroke="#c8bfb0" strokeWidth={1} />
-        <line x1={pad - 6} y1={H / 2} x2={W - pad + 6} y2={H / 2} stroke="#c8bfb0" strokeWidth={1} />
-        <polygon points={`${W / 2 - 3},${pad - 6} ${W / 2 + 3},${pad - 6} ${W / 2},${pad - 13}`} fill="#c8bfb0" />
-        <polygon points={`${W - pad + 6},${H / 2 - 3} ${W - pad + 6},${H / 2 + 3} ${W - pad + 13},${H / 2}`} fill="#c8bfb0" />
-        <text x={W - pad + 16} y={H / 2 + 4} fontSize="7.5" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="start">{axes?.xHigh}</text>
-        <text x={pad - 8} y={H / 2 + 4} fontSize="7.5" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="end">{axes?.xLow}</text>
-        <text x={W / 2} y={pad - 16} fontSize="7.5" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="middle">{axes?.yHigh}</text>
-        <text x={W / 2} y={H - pad + 20} fontSize="7.5" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="middle">{axes?.yLow}</text>
-        <text x={W - 8} y={H - 8} fontSize="7" fill="#b0a090" fontFamily="'Playfair Display', serif" textAnchor="end">{axes?.x} →</text>
-        <text x="10" y={pad + 20} fontSize="7" fill="#b0a090" fontFamily="'Playfair Display', serif" textAnchor="middle" transform={`rotate(-90, 10, ${pad + 20})`}>{axes?.y} ↑</text>
+    <div style={{ position: "relative" }}>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: "block", cursor: "crosshair" }}>
+        <rect width={W} height={H} fill="#faf7f2" rx={4} />
+        {/* Quadrant shading */}
+        <rect x={pad} y={pad} width={W/2-pad/2} height={H/2-pad/2} fill="#f0f4ff" opacity={0.5} />
+        <rect x={W/2+1} y={pad} width={W/2-pad/2} height={H/2-pad/2} fill="#f0fff4" opacity={0.5} />
+        <rect x={pad} y={H/2+1} width={W/2-pad/2} height={H/2-pad/2} fill="#fff8f0" opacity={0.5} />
+        <rect x={W/2+1} y={H/2+1} width={W/2-pad/2} height={H/2-pad/2} fill="#fdf0f0" opacity={0.5} />
+        {/* Axes */}
+        <line x1={W/2} y1={pad-8} x2={W/2} y2={H-pad+8} stroke="#c8bfb0" strokeWidth={1.5} />
+        <line x1={pad-8} y1={H/2} x2={W-pad+8} y2={H/2} stroke="#c8bfb0" strokeWidth={1.5} />
+        {/* Arrows */}
+        <polygon points={`${W/2-4},${pad-8} ${W/2+4},${pad-8} ${W/2},${pad-16}`} fill="#c8bfb0" />
+        <polygon points={`${W-pad+8},${H/2-4} ${W-pad+8},${H/2+4} ${W-pad+16},${H/2}`} fill="#c8bfb0" />
+        {/* Axis labels */}
+        <text x={W-pad+20} y={H/2+4} fontSize="8" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="start">{axes?.xHigh}</text>
+        <text x={pad-10} y={H/2+4} fontSize="8" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="end">{axes?.xLow}</text>
+        <text x={W/2} y={pad-20} fontSize="8" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="middle">{axes?.yHigh}</text>
+        <text x={W/2} y={H-pad+22} fontSize="8" fill="#8a7560" fontFamily="'Playfair Display', serif" textAnchor="middle">{axes?.yLow}</text>
+        <text x={W-10} y={H-6} fontSize="7" fill="#b0a090" fontFamily="'Playfair Display', serif" textAnchor="end">{axes?.x} →</text>
+        <text x="12" y={pad+14} fontSize="7" fill="#b0a090" fontFamily="'Playfair Display', serif" textAnchor="middle" transform={`rotate(-90, 12, ${pad+14})`}>{axes?.y} ↑</text>
+        {/* Players */}
         {players?.map((p, i) => {
           const cx = pad + p.x * (W - 2 * pad);
           const cy = H - pad - p.y * (H - 2 * pad);
+          const isHov = hovered === i;
+          const info = getCompetitorInfo(p.name);
           return (
-            <g key={i}>
-              {p.isNew && <circle cx={cx} cy={cy} r={13} fill="none" stroke="#2d6a40" strokeWidth={1} strokeDasharray="3 2" opacity={0.6} />}
-              <circle cx={cx} cy={cy} r={p.isNew ? 8 : 5} fill={p.isNew ? "#2d6a40" : "#7a6a58"} opacity={p.isNew ? 1 : 0.65} />
-              <text x={cx + 10} y={cy + 4} fontSize="7.5" fill={p.isNew ? "#2d6a40" : "#5a4a38"} fontFamily="'Source Serif 4', serif" fontWeight={p.isNew ? 700 : 400} fontStyle={p.isNew ? "italic" : "normal"}>
-                {p.name?.length > 13 ? p.name.slice(0, 12) + "…" : p.name}
+            <g key={i} style={{ cursor: "pointer" }}
+              onMouseEnter={(e) => { setHovered(i); setTooltipPos({ x: cx, y: cy }); }}
+              onMouseLeave={() => setHovered(null)}>
+              {p.isNew && <circle cx={cx} cy={cy} r={18} fill="none" stroke="#2d6a40" strokeWidth={1.5} strokeDasharray="4 3" opacity={0.7} />}
+              <circle cx={cx} cy={cy} r={isHov ? (p.isNew ? 12 : 9) : (p.isNew ? 9 : 6)}
+                fill={p.isNew ? "#2d6a40" : isHov ? "#4a3a28" : "#7a6a58"}
+                opacity={p.isNew ? 1 : isHov ? 1 : 0.7}
+                style={{ transition: "r 0.15s, fill 0.15s" }}
+              />
+              <text x={cx + (p.isNew ? 14 : 11)} y={cy + 4}
+                fontSize={isHov ? "9" : "8"}
+                fill={p.isNew ? "#2d6a40" : isHov ? "#2a1e10" : "#5a4a38"}
+                fontFamily="'Source Serif 4', serif"
+                fontWeight={p.isNew || isHov ? 700 : 400}
+                fontStyle={p.isNew ? "italic" : "normal"}
+                style={{ transition: "font-size 0.15s" }}>
+                {p.name?.length > 14 ? p.name.slice(0, 13) + "…" : p.name}
               </text>
             </g>
           );
         })}
       </svg>
+
+      {/* Hover Tooltip */}
+      {hovered !== null && players?.[hovered] && (() => {
+        const p = players[hovered];
+        const info = getCompetitorInfo(p.name);
+        const cx = pad + p.x * (W - 2 * pad);
+        const cy = H - pad - p.y * (H - 2 * pad);
+        const flipX = p.x > 0.65;
+        const flipY = p.y > 0.65;
+        return (
+          <div style={{
+            position: "absolute",
+            left: `${(cx / W) * 100}%`,
+            top: `${(cy / H) * 100}%`,
+            transform: `translate(${flipX ? "calc(-100% - 12px)" : "12px"}, ${flipY ? "calc(-100% - 8px)" : "8px"})`,
+            background: "#2a1e10",
+            color: "#f5f0e8",
+            borderRadius: 6,
+            padding: "10px 14px",
+            minWidth: 180,
+            maxWidth: 240,
+            zIndex: 100,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+            pointerEvents: "none",
+          }}>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 12, marginBottom: 6, borderBottom: "1px solid rgba(255,255,255,0.15)", paddingBottom: 5 }}>
+              {p.name} {p.isNew && <span style={{ color: "#8a9", fontSize: 9, marginLeft: 4 }}>◆ YOUR ENTRY</span>}
+            </div>
+            {info ? (
+              <>
+                <div style={{ fontSize: 10, color: "#c8a870", marginBottom: 3 }}>{info.fundingStage} · {info.hq}</div>
+                <div style={{ fontSize: 11, color: "#d4c9b8", lineHeight: 1.5, marginBottom: 6, fontStyle: "italic" }}>{info.positioning}</div>
+                <div style={{ fontSize: 10, color: "#8a9a7a", marginBottom: 2 }}>💰 {info.pricingModel}</div>
+                {info.strengths?.[0] && <div style={{ fontSize: 10, color: "#7ab87a", marginTop: 4 }}>✓ {info.strengths[0]}</div>}
+                {info.weaknesses?.[0] && <div style={{ fontSize: 10, color: "#e07070", marginTop: 2 }}>✗ {info.weaknesses[0]}</div>}
+              </>
+            ) : (
+              <div style={{ fontSize: 11, color: "#d4c9b8", fontStyle: "italic" }}>Hover for details</div>
+            )}
+          </div>
+        );
+      })()}
+
       {whitespace && (
         <div style={{ marginTop: 10, padding: "9px 12px", background: "#e8f2ea", borderRadius: 3, borderLeft: "2px solid #2d6a40" }}>
           <Label color="#2d6a40">Whitespace</Label>
           <p style={{ margin: 0, fontSize: 11, color: "#2d4a38", fontStyle: "italic", lineHeight: 1.6 }}>{whitespace}</p>
         </div>
       )}
+      <div style={{ marginTop: 8, fontSize: 9, color: "#b0a090", fontStyle: "italic" }}>↗ Hover over any dot to see competitor details</div>
     </div>
   );
 };
@@ -717,7 +800,7 @@ export default function App() {
 
               <ReportSection number="05" title="Competitive Positioning Map">
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22 }}>
-                  <PositioningMap data={data.positioning || {}} />
+                  <PositioningMap data={data.positioning || {}} competitors={data.competitors} />
                   <div>
                     <Label>Recommended Positioning</Label>
                     <p style={{ margin: "0 0 14px", fontSize: 12, lineHeight: 1.75, color: "#3a2e22", fontStyle: "italic" }}>{data.positioning?.recommendation}</p>
@@ -749,6 +832,42 @@ export default function App() {
                         {data.gtm.risks?.map((r, i) => <div key={i} style={{ fontSize: 12, color: "#5a2020", marginBottom: 5 }}>⚠ {r}</div>)}
                       </div>
                     </div>
+                  </div>
+                </ReportSection>
+              )}
+
+              {/* 07 PM Decision */}
+              {data.pmDecision && (
+                <ReportSection number="07" title="PM Decision Brief">
+                  <div style={{ background: "#1a1008", borderRadius: 8, padding: "22px 24px", marginBottom: 4 }}>
+                    <div style={{ fontSize: 9, color: "#8a6c40", letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 16, fontFamily: "'Playfair Display', serif" }}>
+                      If I were the PM — here is what I would do
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      {[
+                        { icon: "🏗️", label: "Build / Buy / Partner", value: data.pmDecision.buildBuyPartner, color: "#c8a870" },
+                        { icon: "🎯", label: "First Move (Next 30 Days)", value: data.pmDecision.firstMove, color: "#7ab87a" },
+                        { icon: "⚠️", label: "Biggest Risk in Year 1", value: data.pmDecision.biggestRisk, color: "#e07070" },
+                        { icon: "👁️", label: "Watch This Competitor", value: data.pmDecision.watchClosely, color: "#7aaae0" },
+                      ].map(({ icon, label, value, color }) => (
+                        <div key={label} style={{ borderLeft: `2px solid ${color}`, paddingLeft: 12 }}>
+                          <div style={{ fontSize: 9, color, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5, fontFamily: "'Playfair Display', serif" }}>
+                            {icon} {label}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#f5f0e8", lineHeight: 1.6 }}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {data.pmDecision.contrarian && (
+                      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                        <div style={{ fontSize: 9, color: "#b0946a", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 5, fontFamily: "'Playfair Display', serif" }}>
+                          💡 Contrarian Take
+                        </div>
+                        <div style={{ fontSize: 13, color: "#f5f0e8", lineHeight: 1.7, fontStyle: "italic", fontFamily: "'Playfair Display', serif" }}>
+                          "{data.pmDecision.contrarian}"
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </ReportSection>
               )}
