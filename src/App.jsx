@@ -9,7 +9,24 @@ const PRODUCT_TYPES = [
   { id: "marketplace", label: "Marketplace", icon: "🏪", hint: "Platform connecting buyers & sellers" },
 ];
 
-const buildSystemPrompt = (productType) => `You are a senior market intelligence analyst at a top-tier strategy consulting firm specializing in ${productType} products.
+const REGIONS = [
+  { id: "europe", label: "Europe", flag: "🇪🇺" },
+  { id: "north_america", label: "North America", flag: "🇺🇸" },
+  { id: "apac", label: "Asia Pacific", flag: "🌏" },
+  { id: "mea", label: "Middle East & Africa", flag: "🌍" },
+  { id: "latam", label: "Latin America", flag: "🌎" },
+  { id: "global", label: "Global", flag: "🌐" },
+];
+
+const buildSystemPrompt = (productType, region) => `You are a senior market intelligence analyst at a top-tier strategy consulting firm specializing in ${productType} products.
+
+GEOGRAPHY RULE — THIS IS CRITICAL: The user has requested analysis scoped to ${region} only.
+- For competitors: ONLY include companies that are actually sold, distributed, or actively used in ${region}. If a company primarily operates in another region (e.g. a US-only product), DO NOT include it — even if it is well known globally.
+- For market sizing (TAM/SAM/SOM): use ${region}-specific figures only, not global numbers.
+- For trends, regulations, tailwinds and headwinds: focus on what is relevant in ${region} specifically (e.g. EU regulations like GDPR, EN standards for Europe; FCC for US etc).
+- For pricing: use pricing as it appears in ${region} markets.
+
+If the region is Global, include all major players worldwide.
 
 You have access to a web search tool. Use it to find current, real data about the market, competitors, funding rounds, and pricing before responding.
 
@@ -454,6 +471,7 @@ const FollowUpChat = ({ reportData, apiKey }) => {
 export default function App() {
   const [query, setQuery] = useState("");
   const [productType, setProductType] = useState(null);
+  const [region, setRegion] = useState("global");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -473,9 +491,10 @@ export default function App() {
     setLoading(true); setData(null); setError(null);
     try {
       const typeLabel = PRODUCT_TYPES.find(t => t.id === productType)?.label || "general";
-      const systemPrompt = buildSystemPrompt(typeLabel);
+      const regionLabel = REGIONS.find(r => r.id === region)?.label || "Global";
+      const systemPrompt = buildSystemPrompt(typeLabel, regionLabel);
       const text = await callClaude(
-        [{ role: "user", content: `Produce a full market analysis report for: ${query}` }],
+        [{ role: "user", content: `Produce a full market analysis report for: ${query}. Focus specifically on the ${regionLabel} market.` }],
         systemPrompt,
         true
       );
@@ -532,8 +551,24 @@ export default function App() {
             ))}
           </div>
 
+          {/* Region Selector */}
+          <Label>Step 2 — Select Target Region</Label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+            {REGIONS.map(r => (
+              <button key={r.id} onClick={() => setRegion(r.id)} style={{
+                background: region === r.id ? "#2a1e10" : "#fdfaf6",
+                border: `1px solid ${region === r.id ? "#2a1e10" : "#d4c9b8"}`,
+                borderRadius: 4, padding: "7px 14px", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s"
+              }}>
+                <span style={{ fontSize: 14 }}>{r.flag}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: region === r.id ? "#f5f0e8" : "#3a2e22", fontFamily: "'Playfair Display', serif" }}>{r.label}</span>
+              </button>
+            ))}
+          </div>
+
           {/* Query Input */}
-          <Label>Step 2 — Describe Your Product or Market</Label>
+          <Label>Step 3 — Describe Your Product or Market</Label>
           <textarea
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -582,6 +617,18 @@ export default function App() {
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: 13, color: "#6b5c45", fontStyle: "italic", lineHeight: 1.6 }}>{data.meta?.analystNote}</p>
+            </div>
+            {/* Export bar */}
+            <div style={{ background: "#fdfaf6", border: "1px solid #d4c9b8", borderTop: "none", padding: "10px 30px", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => {
+                const style = document.createElement("style");
+                style.innerHTML = `@media print { body { -webkit-print-color-adjust: exact; } button { display: none !important; } .no-print { display: none !important; } }`;
+                document.head.appendChild(style);
+                window.print();
+                setTimeout(() => document.head.removeChild(style), 1000);
+              }} style={{ background: "#2a1e10", color: "#f5f0e8", border: "none", borderRadius: 3, padding: "7px 16px", fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 11, cursor: "pointer", letterSpacing: "0.08em", display: "flex", alignItems: "center", gap: 6 }}>
+                <span>⬇</span> Export PDF
+              </button>
             </div>
 
             {/* Report body */}
