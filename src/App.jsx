@@ -462,6 +462,7 @@ export default function App() {
         true
       );
       if (!text) throw new Error("No response from API");
+      const stripped = text.replace(/<cite[^>]*>|<\/cite>/g, "");
       const match = text.match(/\{[\s\S]*\}/);
       if (!match) throw new Error("Could not parse report data");
       setData(JSON.parse(match[0]));
